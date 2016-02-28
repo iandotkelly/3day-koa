@@ -24,6 +24,7 @@ app.use(logger());
 app.use(compress());
 
 // authentication
+app.use(require('./lib/customheader-middleware'));
 app.use(require('./lib/authenticate'));
 
 // private routes
