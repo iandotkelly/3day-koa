@@ -8,11 +8,11 @@
 
 const koa = require('koa');
 const compress = require('koa-compress');
-const routerPub = require('koa-router')();
 const routerAuth = require('koa-router')();
 const logger = require('koa-logger');
-const passport = require('koa-passport');
 const config = require('./config');
+const routes = require('./routes');
+const authenticate = require('./lib/authenticate');
 const port = config.port || 4000;
 
 var app = koa();
@@ -23,25 +23,11 @@ app.use(logger());
 // Compress
 app.use(compress());
 
-// public routes
-app.use(routerPub.routes());
-app.use(routerPub.allowedMethods());
-
 // authentication
-app.use(passport.initialize());
-
-// authentication block
-app.use(function *(next) {
-	if (this.req.isAuthenticated) {
-		// continue downstream routes and
-		// middleware that reqires authentication
-		yield next;
-	} else {
-		this.response.status = 401;
-	}
-});
+app.use(require('./lib/authenticate'));
 
 // private routes
+routerAuth.get('/api/users', routes.users.retrieve);
 app.use(routerAuth.routes());
 app.use(routerAuth.allowedMethods());
 
