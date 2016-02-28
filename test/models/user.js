@@ -159,12 +159,15 @@ describe('User', function() {
 				var diff = Math.abs(Date.now() - user.latest.getTime());
 				diff.should.be.greaterThan(100000);
 
-				user.setLatest(function(err) {
-					should.not.exist(err);
-					diff = Math.abs(Date.now() - user.latest.getTime());
-					diff.should.be.lessThan(100);
-					done();
-				});
+				user.setLatest()
+					.then(() => {
+						diff = Math.abs(Date.now() - user.latest.getTime());
+						diff.should.be.lessThan(100);
+						done();
+					})
+					.catch((err) => {
+						throw err;
+					});
 			});
 		});
 	});

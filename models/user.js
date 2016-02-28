@@ -118,21 +118,30 @@ userSchema.methods.validatePassword = function (password, next) {
 *
 * @param {Function} next Callback (err)
 */
-userSchema.methods.setLatest = function (next) {
+userSchema.methods.setLatest = function () {
 
 	// set the object's latest to now
 	var now = Date.now();
 	this.latest = now;
 
+	return new Promise((resolve, reject) => {
+		this.update({
+			latest: now
+		}).then((results) => {
+			if (results.nModified !== 1) {
+				return reject(new Error('Unexpected number of affected records ${results.nModified}'));
+			}
+			resolve(results);
+		}).catch((err) => 	{
+			reject(err);
+		});
+	});
 	// rather than write out in a full save - just update
 	// the property in the document
+	/*
 	this.update({
 		latest: now
-	}, function (err, results) {
-		if (err) {
-			return next(err);
-		}
-
+	}).then((results) => {
 		if (results.nModified !== 1) {
 			return next(
 				new Error('Unexpected number of affected records: ' +
@@ -140,7 +149,11 @@ userSchema.methods.setLatest = function (next) {
 			);
 		}
 		next();
+	})
+	.catch((err) => {
+		return next(err);
 	});
+	*/
 };
 
 /**
