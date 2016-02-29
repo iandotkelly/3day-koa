@@ -135,21 +135,22 @@ describe('User', function() {
 		describe('#validatePassword()', function() {
 
 			it('should not match with the wrong password', function(done) {
-				user.validatePassword('dogsss', function(err, isMatch) {
-					should(err).not.Error;
-					isMatch.should.be.false;
-					done();
-				});
+				user.validatePassword('dogsss')
+					.then(isMatch => {
+						isMatch.should.be.false;
+						done();
+					})
+					.catch(err => { throw 'should not error'; });
 			});
 
 			it('should match with the correct password', function(done) {
-				user.validatePassword('catsss', function(err, isMatch) {
-					should(err).not.Error;
-					isMatch.should.be.true;
-					done();
+				user.validatePassword('catsss')
+					.then(isMatch => {
+						isMatch.should.be.true;
+						done();
+					})
+					.catch(err => { throw 'should not error';});
 				});
-			});
-
 		});
 
 		describe('#update()', function() {
@@ -543,38 +544,35 @@ describe('User', function() {
 
 		describe('with an approved user', function() {
 			it('should be approved', function(done) {
-				approved.isAuthorized(myuser._id, function(err, approved) {
-					if (err) {
-						throw err;
-					}
-					approved.should.be.true;
-					done();
-				});
+				approved.isAuthorized(myuser._id)
+					.then(approved => {
+						approved.should.be.true;
+						done();
+					})
+					.catch(err => { throw 'should not error';});
 			});
 		});
 
 
 		describe('with a not approved user', function() {
 			it('should be approved', function(done) {
-				notApproved.isAuthorized(myuser._id, function(err, approved) {
-					if (err) {
-						throw err;
-					}
-					approved.should.be.false;
-					done();
-				});
+				notApproved.isAuthorized(myuser._id)
+					.then(approved => {
+						approved.should.be.false;
+						done();
+					})
+					.catch(err => { throw 'should not error'; });
 			});
 		});
 
 		describe('with a blocked user', function() {
 			it('should be approved', function(done) {
-				blocked.isAuthorized(myuser._id, function(err, approved) {
-					if (err) {
-						throw err;
-					}
-					approved.should.be.false;
-					done();
-				});
+				blocked.isAuthorized(myuser._id)
+					.then(approved => {
+						approved.should.be.false;
+						done();
+					})
+					.catch(err => { throw 'should not error'; });
 			});
 		});
 
@@ -702,15 +700,16 @@ describe('User', function() {
 		describe('with no shortlist', function () {
 
 			it('should return 3 approved', function (done) {
-				user.allAuthorized(function (err, ids) {
-					should.not.exist(err);
-					ids.should.be.an.Array();
-					ids.length.should.be.equal(3);
-					(ids[0].equals(followingA1._id)).should.be.true;
-					(ids[1].equals(followingA2._id)).should.be.true;
-					(ids[2].equals(user._id)).should.be.true;
-					done();
-				});
+				user.allAuthorized()
+					.then(ids => {
+						ids.should.be.an.Array();
+						ids.length.should.be.equal(3);
+						(ids[0].equals(followingA1._id)).should.be.true;
+						(ids[1].equals(followingA2._id)).should.be.true;
+						(ids[2].equals(user._id)).should.be.true;
+						done();
+					})
+					.catch(err => { throw 'should not error'; });
 			});
 		});
 
@@ -718,26 +717,28 @@ describe('User', function() {
 		describe('with a shortlist', function () {
 
 			it('should return 1 approved', function (done) {
-				user.allAuthorized([followingA2._id], function (err, ids) {
-					should.not.exist(err);
-					ids.should.be.an.Array();
-					ids.length.should.be.equal(1);
-					(ids[0].equals(followingA2._id)).should.be.true;
-					done();
-				});
+				user.allAuthorized([followingA2._id])
+					.then(ids => {
+						ids.should.be.an.Array();
+						ids.length.should.be.equal(1);
+						(ids[0].equals(followingA2._id)).should.be.true;
+						done();
+					})
+					.catch(err => { throw 'should not error'; });
 			});
 		});
 
 		describe('with a shortlist of myself', function () {
 
 			it('should return 1 approved', function (done) {
-				user.allAuthorized([user._id.toString()], function (err, ids) {
-					should.not.exist(err);
-					ids.should.be.an.Array();
-					ids.length.should.be.equal(1);
-					(ids[0].equals(user._id)).should.be.true;
-					done();
-				});
+				user.allAuthorized([user._id.toString()])
+					.then(ids => {
+						ids.should.be.an.Array();
+						ids.length.should.be.equal(1);
+						(ids[0].equals(user._id)).should.be.true;
+						done();
+					})
+					.catch(err => { throw 'should not error'; });
 			});
 		});
 	});

@@ -8,26 +8,26 @@
 'use strict';
 
 // db connection
-var db = require('../lib/db-connection');
+const db = require('../lib/db-connection');
 
 // bcrypt used to store password hashes
-var bcrypt = require('bcrypt');
+const bcrypt = require('bcrypt');
 // id utilities
-var indexOfId = require('../lib/ids').indexOf;
-var listOfIds = require('../lib/ids').listOf;
+const indexOfId = require('../lib/ids').indexOf;
+const listOfIds = require('../lib/ids').listOf;
 
 // the user model itself
 var User;
 
 // constants
-var reasonCodes = require('../lib/constants').reasonCodes;
+const reasonCodes = require('../lib/constants').reasonCodes;
 // work factor for password encryption
-var SALT_WORK_FACTOR = 10;
-var usernameValidation = /^[a-zA-Z0-9_-]{4,20}$/;
-var passwordValidation = /^[^\s]{6,20}$/;
+const SALT_WORK_FACTOR = 10;
+const usernameValidation = /^[a-zA-Z0-9_-]{4,20}$/;
+const passwordValidation = /^[^\s]{6,20}$/;
 
 // spoof a mongoose validation error for the password validation
-var passwordValidationError = new Error();
+const passwordValidationError = new Error();
 passwordValidationError.name = 'ValidationError';
 passwordValidationError.errors = {
 	password: {
@@ -35,7 +35,7 @@ passwordValidationError.errors = {
 	}
 };
 
-var userSchema = db.Schema({
+const userSchema = db.Schema({
 	// the compulsory authentication fields
 	username: {
 		type: String,
@@ -101,15 +101,17 @@ var userSchema = db.Schema({
 /**
 * Compares a password
 *
-* @param  {String}   password The candidate password
-* @param  {Function} next     Callback (err, isMatch)
+* @param   {String}   password The candidate password
+* @returns {Promise}
 */
-userSchema.methods.validatePassword = function (password, next) {
-	bcrypt.compare(password, this.password, function (err, isMatch) {
-		if (err) {
-			return next(err);
-		}
-		next(null, isMatch);
+userSchema.methods.validatePassword = function (password) {
+	return new Promise((resolve, reject) => {
+		bcrypt.compare(password, this.password, function (err, isMatch) {
+			if (err) {
+				return reject(err);
+			}
+			resolve(isMatch);
+		});
 	});
 };
 
@@ -274,133 +276,117 @@ userSchema.methods.removeFollowing = function (id) {
 * Whether this user is approved to access a resource of
 * another user
 *
-* @param {user}   otherUserId The ObjectId of the other user
-* @param {Function} next      Callback
+* @param   {user}   otherUserId The ObjectId of the other user
+* @returns {Promise}
 */
-userSchema.methods.isAuthorized = function (otherUserId, next) {
+userSchema.methods.isAuthorized = function (otherUserId) {
 
-	// by definition we are authorized to view our own stuff
-	if (this._id.equals(otherUserId)) {
-		return next(null, true);
-	}
+	return new Promise((resolve, reject) => {
 
-	var self = this;
+		// by definition we are authorized to view our own stuff
+		if (this._id.equals(otherUserId)) {
+			return resolve(true);
+		}
 
-	User.findById(otherUserId,
-		'followers',
-		function (err, otherUser) {
-			if (err) {
-				return next(err);
-			}
+		User.findById(otherUserId, 'followers')
+			.then(otherUser => {
 
-			// is this user even known?
-			if (!otherUser) {
-				return next(null, false);
-			}
+				// is this user even known?
+				if (!otherUser) {
+					return resolve(false);
+				}
 
-			var followers =  otherUser.followers || [];
+				const followers =  otherUser.followers || [];
 
-			// find the index of this user, in the other user's following list
-			var index = indexOfId(followers, self._id);
+				// find the index of this user, in the other user's following list
+				const index = indexOfId(followers, this._id);
 
-			// i'm not even a follower of this user
-			if (index === -1) {
-				return next(null, false);
-			}
+				// i'm not even a follower of this user
+				if (index === -1) {
+					return resolve(false);
+				}
 
-			var status = followers[index].status;
+				const status = followers[index].status;
 
-			// we are only authorized when the user is active, approved and not blocked
-			return next(null, status.active && status.approved && !status.blocked);
+				// we are only authorized when the user is active, approved and not blocked
+				return resolve(status.active && status.approved && !status.blocked);
+			})
+			.catch(err => reject(err));
 		});
 };
 
 /**
 * Returns an array of IDs of users I am authorized to follow
 *
-* @param {Array}	shortList	Optional list of IDs
+* @param   {Array}	shortList	Optional list of IDs
+* @returns {Promise}
 */
-userSchema.methods.allAuthorized = function (shortList, next) {
+userSchema.methods.allAuthorized = function (shortList) {
 
 	var ourId = this._id;
-
-	if (typeof shortList === 'function') {
-		next = shortList;
-		shortList = undefined;
-	}
 
 	// get list of IDs of users we are following
 	var followingIds = listOfIds(this.following, {
 		shortList: shortList
 	});
 
-	User.find({
-		'_id': {
-			$in: followingIds
-		},
-		'followers.id': this._id,
-		'followers.status.approved': true,
-		'followers.status.blocked': false
-	},
-	'_id',
-	function (err, docs) {
-		if (err) {
-			return next(err);
-		}
+	return new Promise((resolve, reject) => {
+		User.find({
+			'_id': {
+				$in: followingIds
+			},
+			'followers.id': this._id,
+			'followers.status.approved': true,
+			'followers.status.blocked': false
+		},'_id')
+			.then(docs => {
+				var foundIds = listOfIds(docs, {idName: '_id'});
 
-		var foundIds = listOfIds(docs, {idName: '_id'});
+				// if there is no shortlist, or if we are on the shortlist
+				// then we need to add ourselves to the list
+				if (!shortList || shortList.indexOf(ourId.toString()) >= 0) {
+					foundIds.push(ourId);
+				}
 
-		// if there is no shortlist, or if we are on the shortlist
-		// then we need to add ourselves to the list
-		if (!shortList || shortList.indexOf(ourId.toString()) >= 0) {
-			foundIds.push(ourId);
-		}
-
-		return next(null, foundIds);
+				return resolve(foundIds);
+			})
+			.catch(err => reject(err));
 	});
-
 };
 
 /**
 * Utility function to add usernames to the following/followers
 *
-* @param {Array}    list Array of people following/followers
-* @param {Function} next
+* @param   {Array}    list Array of people following/followers
+* @returns {Promise}
+* @todo tests
 */
-userSchema.statics.addUsername = function (list, next) {
+userSchema.statics.addUsername = function (list) {
 
 	var ids = listOfIds(list);
 
-	if (ids.length === 0) {
-		return next();
-	}
+	return new Promise((resolve, reject) => {
 
-	User.find({
-			'_id': {
-				$in: ids
-			},
-		},
-		'_id username',
-		function (err, users) {
-			if (err) {
-				return next(err);
-			}
+		if (ids.length === 0) {
+			return resolve();
+		}
 
-			// iterate over all the users
-			for (var userIndex = 0, usersLen = users.length; userIndex < usersLen; userIndex++) {
-				var user = users[userIndex];
-
-				for (var index = 0, len = list.length; index < len; index++) {
-					var item = list[index];
-					if (user._id.equals(item.id)) {
-						item.username = user.username;
-						break;
+		User.find({'_id': { $in: ids } }, '_id username')
+			.then(users => {
+				// iterate over all the users
+				for (var user of users) {
+					for (var item of list) {
+						if (user._id.equals(item.id)) {
+							item.username = user.username;
+							break;
+						}
 					}
 				}
-			}
 
-			next(null, list);
-		});
+				return resolve(list);
+			})
+			.catch(err => reject(err));
+	});
 };
 
 /**
