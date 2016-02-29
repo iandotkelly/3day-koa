@@ -285,39 +285,39 @@ describe('User', function() {
 		});
 
 		it('should return an error if the user id is not known', function(done) {
-			myuser.addFollowing('nonsense', function(err) {
-				should(err).be.an.object;
-				done();
-			});
+			myuser
+				.addFollowing('nonsense')
+				.then(() => { throw 'should not have worked'; })
+				.catch((err) => {
+					should(err).be.an.object;
+					done();
+				});
 		});
 
 		it('should add a valid new user', function(done) {
 			myuser.following.length.should.be.equal(0);
-			myuser.addFollowing('friend', function(err) {
-				should.not.exist(err);
-				User.findOne({
-					username: 'iandotkelly'
-				}, function(err, user) {
-					// check the following
-					should.not.exist(err);
-					user.following.length.should.be.equal(1);
-					user.following[0].id.toString().should.be.equal(friend._id.toString());
-					User.findOne({
-						username: 'friend'
-					}, function(err, user) {
-						// check the follower
-						should.not.exist(err);
-						user.followers.length.should.be.equal(1);
-						var follower = user.followers[0];
-						follower.id.toString().should.be.equal(myuser._id.toString());
-						follower.status.should.be.an.Object();
-						follower.status.approved.should.be.true;
-						follower.status.active.should.be.true;
-						follower.status.blocked.should.be.false;
-						done();
-					});
-				});
-			});
+			myuser
+				.addFollowing('friend')
+				.then(() => {
+					User.findOne({ username: 'iandotkelly' })
+						.then((user) => {
+							user.following.length.should.be.equal(1);
+							user.following[0].id.toString().should.be.equal(friend._id.toString());
+							User.findOne({username: 'friend'})
+								.then((user) => {
+									// check the follower
+									user.followers.length.should.be.equal(1);
+									var follower = user.followers[0];
+									follower.id.toString().should.be.equal(myuser._id.toString());
+									follower.status.should.be.an.Object();
+									follower.status.approved.should.be.true;
+									follower.status.active.should.be.true;
+									follower.status.blocked.should.be.false;
+									done();
+								})
+								.catch((err) => { throw err; });
+						}).catch((err) => { throw err; });
+				}).catch((err) => { throw err; });
 		});
 	});
 
@@ -392,44 +392,48 @@ describe('User', function() {
 		});
 
 		it('should return an error if the username is not known', function(done) {
-			myuser.removeFollowing(new User({
+			const userId = new User({
 				username: 'nonsense',
 				password: 'catssss'
-			})._id, function(err) {
-				err.should.be.an.Object();
-				User.findOne({
-					username: 'iandotkelly'
-				}, function(err, user) {
-					should.not.exist(err);
-					user.following.length.should.be.equal(1);
+			})._id;
+			myuser.removeFollowing(userId)
+				.then(() => { throw 'should not be successful'; })
+				.catch((err) => {
+					err.should.be.an.Object();
 					User.findOne({
-						username: 'friend'
+						username: 'iandotkelly'
 					}, function(err, user) {
 						should.not.exist(err);
-						user.followers.length.should.be.equal(1);
-						done();
+						user.following.length.should.be.equal(1);
+						User.findOne({
+							username: 'friend'
+						}, function(err, user) {
+							should.not.exist(err);
+							user.followers.length.should.be.equal(1);
+							done();
+						});
 					});
-				});
 			});
 		});
 
 		it('should delete the following', function(done) {
-			myuser.removeFollowing(friend._id, function(err) {
-				should.not.exist(err);
-				User.findOne({
-					username: 'iandotkelly'
-				}, function(err, user) {
-					should.not.exist(err);
-					user.following.length.should.be.equal(0);
+			myuser.removeFollowing(friend._id)
+				.then(() => {
 					User.findOne({
-						username: 'friend'
+						username: 'iandotkelly'
 					}, function(err, user) {
 						should.not.exist(err);
-						user.followers.length.should.be.equal(1);
-						user.followers[0].status.active.should.be.false;
-						done();
-					});
-				});
+						user.following.length.should.be.equal(0);
+						User.findOne({
+							username: 'friend'
+						}, function(err, user) {
+							should.not.exist(err);
+							user.followers.length.should.be.equal(1);
+							user.followers[0].status.active.should.be.false;
+							done();
+						});
+				})
+				.catch((err) => { throw 'Should be successful'; });
 			});
 		});
 	});

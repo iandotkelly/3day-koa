@@ -116,7 +116,7 @@ userSchema.methods.validatePassword = function (password, next) {
 /**
 * Sets the latest change to the user's data
 *
-* @param {Function} next Callback (err)
+* @returns {Promise}
 */
 userSchema.methods.setLatest = function () {
 
@@ -125,54 +125,33 @@ userSchema.methods.setLatest = function () {
 	this.latest = now;
 
 	return new Promise((resolve, reject) => {
-		this.update({
-			latest: now
-		}).then((results) => {
-			if (results.nModified !== 1) {
-				return reject(new Error('Unexpected number of affected records ${results.nModified}'));
-			}
-			resolve(results);
-		}).catch((err) => 	{
-			reject(err);
-		});
+		// do an update rather than a full save
+		this
+			.update({ latest: now })
+			.then(results => {
+				if (results.nModified !== 1) {
+					return reject(new Error(`Unexpected number of affected records ${results.nModified}`));
+				}
+				resolve(results);
+			})
+			.catch((err) => { reject(err); });
 	});
-	// rather than write out in a full save - just update
-	// the property in the document
-	/*
-	this.update({
-		latest: now
-	}).then((results) => {
-		if (results.nModified !== 1) {
-			return next(
-				new Error('Unexpected number of affected records: ' +
-					results.nModified)
-			);
-		}
-		next();
-	})
-	.catch((err) => {
-		return next(err);
-	});
-	*/
 };
 
 /**
 * Add a follower
-
-* @param {Object}   user The user to add as a follower
-* @param {Function} next Callback
+*
+* @param   {Object}   user The user to add as a follower
+* @returns {Promise}
 */
-userSchema.methods.addFollower = function (user, next) {
+userSchema.methods.addFollower = function (user) {
 
 	this.followers = this.followers || [];
 
-	// look for the follower in the collection already
-	for (var i = 0; i < this.followers.length; i++) {
-		var follower = this.followers[i];
-
+	for (var follower of this.followers) {
 		if (follower.id === user._id) {
 			// return - do nothing
-			return next();
+			return new Promise();
 		}
 	}
 
@@ -185,136 +164,109 @@ userSchema.methods.addFollower = function (user, next) {
 		}
 	});
 
-	this.save(next);
+	return this.save();
 };
 
 /**
 * Remove a follower - i.e. mark as inactive
 *
-* @param {Object}   user The user to mark as inactive
-* @param {Function} next Callback
+* @param   {Object}   id The user to mark as inactive
+* @returns {Promise}
 */
-userSchema.methods.removeFollower = function (id, next) {
+userSchema.methods.removeFollower = function (id) {
 
 	// get the index of the follower
 	var index = indexOfId(this.followers, id);
 
 	// if we don't find them, then just return
 	if (index < 0) {
-		return next();
+		return new Promise();
 	}
 
 	// otherwise set active state to false and save
 	this.followers[index].status.active = false;
-	this.save(next);
+	return this.save();
 };
 
 /**
 * Add a following by user-id
 *
-* @param {String}   other      The username of the new person to follow
-* @param {Object}   status     The status flags of the user
-* @param {Function} next       Callback (err)
+* @param {String}    other      The username of the new person to follow
+* @param {Object}    status     The status flags of the user
+* @returns {Promise} next
 */
-userSchema.methods.addFollowing = function (username, next) {
+userSchema.methods.addFollowing = function (username) {
 
-	if (typeof username !== 'string') {
-		return next(new Error('username should be a string'));
-	}
+	return new Promise((resolve, reject) => {
+		if (typeof username !== 'string') {
+			return reject(new Error('username should be a string'));
+		}
 
-	var self = this;
-
-	// find the person you wish to follow
-	User.findOne({
-			username: username
-		},
-		function (err, user) {
-
-			// error when finding user
-			if (err) {
-				return next(err);
-			}
-
-			// user not known at all
-			if (!user) {
-				var error = new Error('username:' + username + ' not found');
-				error.name = 'NotFound';
-				return next(error);
-			}
-
-			// only add the user if its not there already
-			if (indexOfId(self.following, user._id) >= 0) {
-				return next(null, user);
-			}
-
-			// add us to the user's followers
-			user.addFollower(self, function (err) {
-				if (err) {
-					return next(err);
+		User
+			.findOne({ username: username })
+			.then(user => {
+				if (!user) {
+					const err = new Error(`username: ${username} not found`);
+					err.name = 'NotFound';
+					return reject(err);
 				}
 
-				// add us as following
-				self.following.push({
-					id: user._id
-				});
+				// only add the user if its not there already
+				if (indexOfId(this.following, user._id) >= 0) {
+					return resolve(user);
+				}
 
-				self.save(function (err) {
-					if (err) {
-						return next(err);
-					}
-					return next(null, user);
-				});
-			});
-		}
-	);
+				user
+					.addFollower(this)
+					.then(() => {
+						this.following.push({ id: user._id });
+						this.save()
+							.then(() => resolve(user))
+							.catch(err => reject(err));
+					})
+					.catch(err => reject(err));
+			})
+			.catch(err => reject(err));
+	});
 };
 
 /**
 * Delete a follower by user-id
 *
-* @param {Srtring}  other The username of the friend
-* @param {Function} next  Callback (err)
+* @param   {String}  other The username of the friend
+* @returns {Promise}
 */
-userSchema.methods.removeFollowing = function (id, next) {
+userSchema.methods.removeFollowing = function (id) {
 
-	var self = this;
 	var following = this.following;
 	var index = indexOfId(following, id);
 
-	if (index < 0) {
-		var err = new Error('ID: ' + id + ' + was not being followed');
-		err.name = 'NotFollowing';
-		return next(err);
-	}
+	return new Promise((resolve, reject) => {
 
-	following.splice(index, 1);
-
-	this.save(function (err) {
-		if (err) {
-			return next(err);
+		if (index < 0) {
+			const err = new Error(`ID: ${id} was not being followed`);
+			err.name = 'NotFollowing';
+			return reject(err);
 		}
 
-		User.findById(id,
-			'followers',
-			function (err, following) {
-				if (err) {
-					return next(err);
-				}
+		following.splice(index, 1);
 
-				if (!following) {
-					err = new Error('ID: ' + id + ' not known');
-					err.name = 'NotKnown';
-					return next(err);
-				}
-
-				following.removeFollower(self._id, function (err) {
-					if (err) {
-						return next(err);
-					}
-					next();
-				});
-			});
-
+		this.save()
+			.then(() => {
+				User.findById(id, 'followers')
+					.then(following => {
+						if (!following) {
+							const err = new Error(`ID: ${id} not known`);
+							err.name = 'NotKnown';
+							return reject(err);
+						}
+						following.removeFollower(this._id)
+							.then(() => resolve())
+							.catch(err => reject(err));
+					})
+					.catch(err => reject(err));
+			})
+			.catch(err => reject(err));
 	});
 };
 
