@@ -272,7 +272,7 @@ describe('The followers API ', function() {
 
       it('should return a 400', function(done) {
         User.findOne({username: 'myuser'}, function (err, ub) {
-          ub.followers[0].status.approved.should.be.true;
+          ub.followers[0].status.approved.should.be.true();
           request(app)
             .post('/api/followers/' + friend1._id)
             .set('3day-app', 'test')

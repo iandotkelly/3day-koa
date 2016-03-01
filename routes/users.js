@@ -6,10 +6,10 @@
 
 'use strict';
 
-var User = require('../models').User;
-var Report = require('../models').Report;
-var httpStatus = require('http-status');
-var reasonCodes = require('../lib/constants').reasonCodes;
+const User = require('../models').User;
+const Report = require('../models').Report;
+const httpStatus = require('http-status');
+const reasonCodes = require('../lib/constants').reasonCodes;
 
 /**
  * Processes a Save Error
@@ -44,7 +44,6 @@ function processSaveError(err) {
 			};
 		}
 	}
-
 	// else we will return falsey
 }
 
@@ -55,7 +54,6 @@ function* create(next) {
 
 	const req = this.request;
 	const body = req.body;
-	var user;
 
 	// do we have the appropriate parameters?
 	if (!body || !body.username || !body.password) {
@@ -67,37 +65,26 @@ function* create(next) {
 		return;
 	}
 
-	user = new User({
+	const user = new User({
 		username: body.username,
 		password: body.password
 	});
 
-	try {
-		var success = yield new Promise((resolve) => {
-			user.save(function (err) {
-				if (err) {
-					throw err;
-				}
-				resolve(true);
-			});
+	yield user.save()
+		.then(() => {
+			this.status = httpStatus.CREATED;
+			this.body = { message: 'Created' };
+		})
+		.catch(err => {
+			// if its a known validation error then return a bad request
+			var saveError = processSaveError(err);
+			if (saveError) {
+				this.status = httpStatus.BAD_REQUEST;
+				this.body = saveError;
+				return;
+			}
+			return this.throw(err, 500);
 		});
-	} catch (err) {
-		// if its a known validation error then return a
-		// a bad request
-		var saveError = processSaveError(err);
-		if (saveError) {
-			this.response.status = httpStatus.BAD_REQUEST;
-			this.response.body = saveError;
-			return;
-		}
-
-		return this.throw(err, 500);
-	}
-
-	this.status = httpStatus.CREATED;
-	this.body = {
-		message: 'Created'
-	};
 }
 
 
@@ -112,29 +99,69 @@ function* retrieve(next) {
 	// if we have got to this point we already have our user
 	// but we will reformat slightly rather than refetch as a lean
 	// object from the db
-	var user = {
+	const user = {
 		id: reqUser._id,
 		username: reqUser.username,
 		autoApprove: reqUser.autoApprove
 	};
 
 	// retrieve report count
-	user.reportCount = yield new Promise((resolve, reject) => {
-		Report.count({userid: user.id}, function (err, count) {
-			if (err) {
-				throw err;
-			}
-
-			resolve(count);
-		});
-	});
+	user.reportCount = yield Report.count({ userid: user.id });
 
 	this.body = user;
 }
 
 
-function* update() {
-	yield;
+function* update(next) {
+
+	const body = this.request.body;
+	const user = this.request.user;
+
+	// the update needs to have either an updated username
+	// or an updated password
+	if (!body || (!body.username && !body.password && !body.followers && !body.hasOwnProperty('autoApprove'))) {
+		this.response.status = httpStatus.BAD_REQUEST;
+		this.response.body = {
+			reason: reasonCodes.BAD_SYNTAX,
+			message: 'Bad request'
+		};
+		return;
+	}
+
+	if (body.username) {
+		user.username = body.username;
+	}
+
+	if (body.password) {
+		user.password = body.password;
+	}
+
+	if (body.followers) {
+		user.followers = body.followers;
+	}
+
+	if (body.hasOwnProperty('autoApprove')) {
+		user.autoApprove = body.autoApprove;
+	}
+
+	yield user.save()
+		.then(() => {
+			this.response.status = httpStatus.OK;
+			this.response.body = { message: 'Updated' };
+		})
+		.catch(err => {
+			// if its a known validation error then return a
+			// a bad request
+			const saveError = processSaveError(err);
+			if (saveError) {
+				this.response.status = httpStatus.BAD_REQUEST;
+				this.response.body = saveError;
+				return;
+			}
+
+			// ok - this is a genuine exception - return a 500
+			return this.throw(err);
+		});
 }
 
 module.exports = {

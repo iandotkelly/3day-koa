@@ -25,7 +25,7 @@ describe('POST /api/users', function () {
 
 	describe('with no authorization header', function () {
 
-		describe('With no body', function () {
+		describe('with no body', function () {
 
 			it('should return a 400', function (done) {
 				request(app)
@@ -34,7 +34,7 @@ describe('POST /api/users', function () {
 					.expect(400, done);
 			});
 
-			it('should return contain the expected error body', function (done) {
+			it('should return the expected error body', function (done) {
 				request(app)
 					.post('/api/users')
 					.set('3day-app', 'test')
@@ -75,7 +75,7 @@ describe('POST /api/users', function () {
 		});
 
 
-		describe('With no password', function () {
+		describe('with no password', function () {
 
 			it('should return a 400', function (done) {
 				request(app)
@@ -85,7 +85,7 @@ describe('POST /api/users', function () {
 					.expect(400, done);
 			});
 
-			it('should return contain the expected error body', function (done) {
+			it('should return the expected error body', function (done) {
 				request(app)
 					.post('/api/users')
 					.set('3day-app', 'test')
@@ -103,7 +103,7 @@ describe('POST /api/users', function () {
 
 
 
-		describe('With bad username', function () {
+		describe('with bad username', function () {
 
 			it('should return a 400', function (done) {
 				request(app)
@@ -159,16 +159,12 @@ describe('POST /api/users', function () {
 
 			// make sure no pre-existing user is there
 			beforeEach(function (done) {
-				User.remove({username: 'integrationtest'}, function () {
-					done();
-				});
+				User.remove({username: 'integrationtest'}).then(() => done());
 			});
 
 			// remove user after each test
 			afterEach(function (done) {
-				User.remove({username: 'integrationtest'}, function () {
-					done();
-				});
+				User.remove({username: 'integrationtest'}).then(() => done());
 			});
 
 			it('should return a 201', function (done) {
@@ -193,11 +189,12 @@ describe('POST /api/users', function () {
 							should.not.exist(err);
 							user.username.should.equal('integrationtest');
 							user.latest.getTime().should.equal(0);
-							user.validatePassword('catsss', function (err, isMatch) {
-								should.not.exist(err);
-								isMatch.should.be.true;
-								done();
-							});
+							user.validatePassword('catsss')
+								.then((isMatch) => {
+									isMatch.should.be.true();
+									done();
+								})
+								.catch(err => done(err));
 						});
 					});
 			});
@@ -364,15 +361,16 @@ describe('POST /api/users', function () {
 						User.findOne({username: 'updateuser'}, function (err, user) {
 							// we expect to not find this user
 							should.not.exist(err);
-							should(user).not.exist;
+							should.not.exist(user);
 							// but we should find the new user - and validate its password
 							User.findOne({username: 'updatedusername'}, function (err, user) {
 								user.username.should.equal('updatedusername');
-								user.validatePassword('freddy', function (err, isMatch) {
-									should.not.exist(err);
-									isMatch.should.be.true;
-									done();
-								});
+								user.validatePassword('freddy')
+									.then(isMatch => {
+										isMatch.should.be.true();
+										done();
+									})
+									.catch(err => done(err));
 							});
 						});
 					});
