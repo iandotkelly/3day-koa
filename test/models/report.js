@@ -167,11 +167,12 @@ describe('Report', function () {
 
 			it('should return nothing', function (done) {
 
-				Report.findByImageId(mongoose.Types.ObjectId(), function (err, report) {
-					should.not.exist(err);
-					should(report).not.exist;
-					done();
-				});
+				Report.findByImageId(mongoose.Types.ObjectId())
+					.then(report => {
+						should.not.exist(report);
+						done();
+					})
+					.catch(err => done(err));
 			});
 		});
 
@@ -180,12 +181,13 @@ describe('Report', function () {
 
 			it('should return the correct report', function (done) {
 
-				Report.findByImageId(imageId, function (err, report) {
-					should.not.exist(err);
-					should(report).exist;
-					report.date.getTime().should.equal((new Date('July 15, 2012')).getTime());
-					done();
-				});
+				Report.findByImageId(imageId)
+					.then(report => {
+						should.exist(report);
+						report.date.getTime().should.equal((new Date('July 15, 2012')).getTime());
+						done();
+					})
+					.catch(err => done(err));
 			});
 		});
 	});

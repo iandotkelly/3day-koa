@@ -207,6 +207,7 @@ userSchema.methods.addFollowing = function (username) {
 		User
 			.findOne({ username: username })
 			.then(user => {
+				// find the user
 				if (!user) {
 					const err = new Error(`username: ${username} not found`);
 					err.name = 'NotFound';
@@ -218,14 +219,12 @@ userSchema.methods.addFollowing = function (username) {
 					return resolve(user);
 				}
 
-				user
-					.addFollower(this)
+				user.addFollower(this)
 					.then(() => {
 						this.following.push({ id: user._id });
-						this.save()
-							.then(() => resolve(user))
-							.catch(err => reject(err));
+					  return this.save();
 					})
+					.then(() => resolve(user))
 					.catch(err => reject(err));
 			})
 			.catch(err => reject(err));
@@ -233,7 +232,7 @@ userSchema.methods.addFollowing = function (username) {
 };
 
 /**
-* Delete a follower by user-id
+* Delete following by user-id
 *
 * @param   {String}  other The username of the friend
 * @returns {Promise}
@@ -253,21 +252,20 @@ userSchema.methods.removeFollowing = function (id) {
 
 		following.splice(index, 1);
 
+		// save the user
 		this.save()
-			.then(() => {
-				User.findById(id, 'followers')
-					.then(following => {
-						if (!following) {
-							const err = new Error(`ID: ${id} not known`);
-							err.name = 'NotKnown';
-							return reject(err);
-						}
-						following.removeFollower(this._id)
-							.then(() => resolve())
-							.catch(err => reject(err));
-					})
-					.catch(err => reject(err));
+			// then find the following reference
+			.then(() => User.findById(id, 'followers'))
+			// then remove from following
+			.then(following => {
+				if (!following) {
+					const err = new Error(`ID: ${id} not known`);
+					err.name = 'NotKnown';
+					return reject(err);
+				}
+				return following.removeFollower(this._id);
 			})
+			.then(() => resolve())
 			.catch(err => reject(err));
 	});
 };
@@ -366,9 +364,10 @@ userSchema.statics.addUsername = function (list) {
 	var ids = listOfIds(list);
 
 	return new Promise((resolve, reject) => {
-
+		// if we're filtering by the ids, and there are none
+		// return an empty list
 		if (ids.length === 0) {
-			return resolve();
+			return resolve([]);
 		}
 
 		User.find({'_id': { $in: ids } }, '_id username')

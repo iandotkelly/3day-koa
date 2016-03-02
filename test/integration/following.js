@@ -160,16 +160,16 @@ describe('The following API', function() {
 	});
 
 
-	describe('POST /api/following/:username', function() {
+		describe('POST /api/following/:username', function() {
 
 		describe('with no user', function() {
 
-			it('should return a 404', function(done) {
+			it('should return a 405', function(done) {
 				request(app)
 					.post('/api/following')
 					.set('3day-app', 'test')
 					.auth('friendintegration', 'catsss')
-					.expect(404, done);
+					.expect(405, done);
 			});
 
 		});
@@ -240,14 +240,14 @@ describe('The following API', function() {
 
 	describe('DELETE /api/following/:id', function() {
 
-		describe('with no user', function() {
+		describe('with no id', function() {
 
-			it('should return a 404', function(done) {
+			it('should return a 405', function(done) {
 				request(app)
 					.del('/api/following')
 					.set('3day-app', 'test')
 					.auth('friendintegration', 'catsss')
-					.expect(404, done);
+					.expect(405, done);
 			});
 		});
 

@@ -55,35 +55,23 @@ var reportSchema = db.Schema({
 /**
  * Find a report by the image ID
  *
- * @param  {ObjectId}   imageId  The ObjectId of the image
- * @param  {Function}	callback Callback(err, report)
+ * @param   {ObjectId}   imageId  The ObjectId of the image
+ * @returns {Promise}
  */
-reportSchema.statics.findByImageId = function (imageId, callback) {
-
-	this.findOne({ 'images.id': imageId }, callback);
-
+reportSchema.statics.findByImageId = function (imageId) {
+	return this.findOne({ 'images.id': imageId });
 };
 
 /**
  * Remove an image
  *
- * @param  {ObjectId}   imageId  The ObjectId of the image
- * @param  {Function}	callback Callback(err, numAffected)
+ * @param   {ObjectId}   imageId  The ObjectId of the image
+ * @returns {Promise}    (numAffected)
  */
-reportSchema.statics.removeImageByImageId = function (imageId, callback) {
-
-	this.update({
-		'images.id': imageId
-	},
-	{
-		$pull: {
-			'images': { id: imageId }
-		}
-	},
-	{
-		multi: false
-	},
-	callback);
+reportSchema.statics.removeImageByImageId = function (imageId) {
+	return this.update({ 'images.id': imageId },
+		{ $pull: { 'images': { id: imageId } } },
+		{ multi: false });
 };
 
 // we are exporting the mongoose model

@@ -43,9 +43,28 @@ app.use(routerPub.allowedMethods());
 app.use(require('./lib/customheader-middleware'));
 app.use(require('./lib/authenticate'));
 
-// private routes
+/**
+ * Authenticated Routes
+ */
+
+// users
 routerAuth.get('/api/users', routes.users.retrieve);
 routerAuth.post('/api/users', routes.users.update);
+// Following
+routerAuth.get('/api/following', routes.following.retrieve);
+routerAuth.post('/api/following/:username', routes.following.create);
+routerAuth.delete('/api/following/:id', routes.following.remove);
+// followers
+routerAuth.get('/api/followers', routes.followers.retrieve);
+routerAuth.post('/api/followers/:id', routes.followers.update);
+// reports
+routerAuth.post('/api/reports', routes.reports.create);
+routerAuth.get('/api/reports/:skip/:number', routes.reports.retrieve);
+routerAuth.get('/api/reports/:number', routes.reports.retrieve);
+routerAuth.get('/api/reports', routes.reports.retrieve);
+routerAuth.delete('/api/reports/:id', routes.reports.remove);
+routerAuth.post('/api/reports/:id', routes.reports.update);
+
 app.use(routerAuth.routes());
 app.use(routerAuth.allowedMethods());
 

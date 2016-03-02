@@ -212,12 +212,12 @@ describe('The followers API ', function() {
 
     describe('with no ID', function() {
 
-      it('should return a 404', function(done) {
+      it('should return a 405', function(done) {
         request(app)
           .post('/api/followers')
           .set('3day-app', 'test')
           .auth('myuser', 'catsss')
-          .expect(404, done);
+          .expect(405, done);
       });
     });
 
