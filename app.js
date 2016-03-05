@@ -15,6 +15,8 @@ const logger = require('koa-logger');
 const config = require('./config');
 const routes = require('./routes');
 const authenticate = require('./lib/authenticate');
+const utilities = require('./lib/context-utilities');
+const httpStatus = require('http-status');
 const port = config.port || 4000;
 
 var app = koa();
@@ -23,6 +25,9 @@ var app = koa();
 app.use(logger());
 app.use(bodyParser());
 app.use(compress());
+
+// custom context utility functions
+app.use(utilities);
 
 // Public routes
 routerPub.post('/api/users', function *(next) {
@@ -64,6 +69,10 @@ routerAuth.get('/api/reports/:number', routes.reports.retrieve);
 routerAuth.get('/api/reports', routes.reports.retrieve);
 routerAuth.delete('/api/reports/:id', routes.reports.remove);
 routerAuth.post('/api/reports/:id', routes.reports.update);
+// images
+routerAuth.get('/api/image/:id', routes.images.retrieve);
+routerAuth.post('/api/image', routes.images.create);
+routerAuth.delete('/api/image/:id', routes.images.remove);
 
 app.use(routerAuth.routes());
 app.use(routerAuth.allowedMethods());

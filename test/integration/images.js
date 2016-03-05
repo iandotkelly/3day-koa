@@ -9,7 +9,7 @@ var should = require('should');
 var mongoose = require('mongoose');
 var Grid = require('gridfs-stream');
 var config = require('../../config');
-
+var ObjectId = mongoose.Types.ObjectId;
 var User = require('../../models').User;
 var Report = require('../../models').Report;
 
@@ -220,7 +220,6 @@ describe('The images API', function () {
 			});
 		});
 
-
 		describe('with an image, and a valid a report id owned by the user', function () {
 
 			it('should 200', function (done) {
@@ -240,10 +239,19 @@ describe('The images API', function () {
 						res.body.should.be.an.Object();
 						res.body.status.should.be.equal('ok');
 						res.body.id.should.be.a.string;
-						// record the id so we can delete the file
-						// after the test
-						imageId = res.body.id;
-						done();
+						// don't like using a timeout, but it isn't there
+						// immediately the request completes
+						setTimeout(function() {
+							// check the file has been created
+							gfs.files.findOne({_id: new ObjectId(res.body.id)}, function(err, file) {
+								should.not.exist(err);
+								should.exist(file);
+								// record the id so we can delete the file
+								// after the test
+								imageId = res.body.id;
+								done();
+							});
+						}, 500);
 					});
 			});
 		});
@@ -253,18 +261,17 @@ describe('The images API', function () {
 
 		// delete the image file file
 		after(function (done) {
-			/*
+
 			setTimeout(function () {
 				gfs.remove({
-					_id: imageId
+					_id: new ObjectId(imageId)
 				}, function (err) {
 					if (err) {
 						throw err;
 					}
 					done();
 				});
-			}, 500);*/
-			done();
+			}, 500);
 		});
 
 		describe('with an bad image ID', function () {

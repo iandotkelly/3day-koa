@@ -5,5 +5,6 @@ module.exports = {
 	users: require('./users'),
 	reports: require('./reports'),
 	followers: require('./followers'),
-	following: require('./following')
+	following: require('./following'),
+	images: require('./images')
 };
