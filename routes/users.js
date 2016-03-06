@@ -57,12 +57,10 @@ function* create(next) {
 
 	// do we have the appropriate parameters?
 	if (!body || !body.username || !body.password) {
-		this.status = httpStatus.BAD_REQUEST;
-		this.body = {
+		return this.send(httpStatus.BAD_REQUEST, {
 			reason: reasonCodes.BAD_SYNTAX,
 			message: 'Bad request'
-		};
-		return;
+		});
 	}
 
 	const user = new User({
@@ -71,17 +69,12 @@ function* create(next) {
 	});
 
 	yield user.save()
-		.then(() => {
-			this.status = httpStatus.CREATED;
-			this.body = { message: 'Created' };
-		})
+		.then(() => this.send(httpStatus.CREATED, { message: 'Created' }))
 		.catch(err => {
 			// if its a known validation error then return a bad request
-			var saveError = processSaveError(err);
+			const saveError = processSaveError(err);
 			if (saveError) {
-				this.status = httpStatus.BAD_REQUEST;
-				this.body = saveError;
-				return;
+				return this.send(httpStatus.BAD_REQUEST, saveError);
 			}
 			return this.throw(err, 500);
 		});
@@ -93,8 +86,7 @@ function* create(next) {
  */
 function* retrieve(next) {
 
-	const req = this.request;
-	const reqUser = req.user;
+	const reqUser = this.request.user;
 
 	// if we have got to this point we already have our user
 	// but we will reformat slightly rather than refetch as a lean
@@ -120,12 +112,10 @@ function* update(next) {
 	// the update needs to have either an updated username
 	// or an updated password
 	if (!body || (!body.username && !body.password && !body.followers && !body.hasOwnProperty('autoApprove'))) {
-		this.response.status = httpStatus.BAD_REQUEST;
-		this.response.body = {
+		return this.send(httpStatus.BAD_REQUEST, {
 			reason: reasonCodes.BAD_SYNTAX,
 			message: 'Bad request'
-		};
-		return;
+		});
 	}
 
 	if (body.username) {
@@ -154,9 +144,7 @@ function* update(next) {
 			// a bad request
 			const saveError = processSaveError(err);
 			if (saveError) {
-				this.response.status = httpStatus.BAD_REQUEST;
-				this.response.body = saveError;
-				return;
+				return this.send(httpStatus.BAD_REQUEST, saveError);
 			}
 
 			// ok - this is a genuine exception - return a 500

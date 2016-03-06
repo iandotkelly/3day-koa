@@ -38,7 +38,7 @@ function* retrieve() {
  * Update a particular followers details
  */
 function* update() {
-  /* jshint maxstatements: 21  */
+  // jshint maxstatements: 18, strict: true
 
   var id = this.params.id;
 	const user = this.request.user,
@@ -49,15 +49,17 @@ function* update() {
   try {
     id = new ObjectId(id);
   } catch (err) {
-		this.status = httpStatus.BAD_REQUEST;
-		this.body = { status: 'failed', message: 'not a user id' };
-		return;
+		return this.send(httpStatus.BAD_REQUEST, {
+			status: 'failed',
+			message: 'not a user id'
+		});
   }
 
 	if (typeof approved !== 'boolean' && typeof blocked !== 'boolean') {
-		this.status = httpStatus.BAD_REQUEST;
-		this.body = { status: 'failed', message: 'no data included' };
-		return;
+		return this.send(httpStatus.BAD_REQUEST, {
+			status: 'failed',
+			message: 'no data included'
+		});
   }
 
   // find the relevent user
@@ -70,9 +72,10 @@ function* update() {
   }
 
   if (!found) {
-		this.status = httpStatus.BAD_REQUEST;
-		this.body = { status: 'failed', message: `not following user $(id.toString())` };
-		return;
+		return this.send(httpStatus.BAD_REQUEST, {
+			status: 'failed',
+			message: `not following user $(id.toString())`
+		});
   }
 
 	found.status.approved = approved === undefined ?
@@ -82,7 +85,7 @@ function* update() {
 
 	yield user.save();
 
-	this.body = { status: 'success', message: 'follower status updated' };
+	this.send({ status: 'success', message: 'follower status updated' });
 }
 
 module.exports = {

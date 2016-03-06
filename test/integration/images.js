@@ -116,8 +116,8 @@ describe('The images API', function () {
 						res.statusCode.should.be.equal(400);
 						res.body.should.be.an.Object();
 						res.body.status.should.be.equal('failed');
-						res.body.reason.should.be.equal(20002);
-						res.body.message.should.be.equal('Not a multipart request');
+						res.body.reason.should.be.equal(20000);
+						res.body.message.should.be.equal('No image found');
 						done();
 					});
 

@@ -6,11 +6,11 @@
 
 'use strict';
 
-var Report = require('../models').Report;
-var httpStatus = require('http-status');
-var constants = require('../lib/constants');
+const Report = require('../models').Report;
+const httpStatus = require('http-status');
+const constants = require('../lib/constants');
 
-var errorResponse = {
+const errorResponse = {
 	reason: constants.BAD_SYNTAX,
 	message: 'Bad request'
 };
@@ -25,9 +25,7 @@ function* create(next) {
 	var report;
 
 	if (!body || !body.date || !body.categories) {
-		this.status = httpStatus.BAD_REQUEST;
-		this.body = errorResponse;
-		return;
+		return this.send(httpStatus.BAD_REQUEST, errorResponse);
 	}
 
 	report = new Report({
@@ -41,8 +39,7 @@ function* create(next) {
 		.then(() => user.setLatest())
 		.catch(err => this.throw(err));
 
-	this.status = httpStatus.CREATED;
-	this.body = { message: 'Created' };
+	this.send(httpStatus.CREATED, { message: 'Created' });
 }
 
 /**
@@ -69,9 +66,7 @@ function* update() {
 
 	const body = this.request.body;
 	if (!body || !body.date || !body.categories) {
-		this.status = httpStatus.BAD_REQUEST;
-		this.body = errorResponse;
-		return;
+		return this.send(httpStatus.BAD_REQUEST, errorResponse);
 	}
 
 	// find and update the report
@@ -80,10 +75,9 @@ function* update() {
 	yield this.request.user.setLatest();
 
 	if (report) {
-		this.body = { message: 'Updated' };
+		this.send({ message: 'Updated' });
 	} else {
-		this.status = httpStatus.NOT_FOUND;
-		this.body = {	message: 'Not Found' };
+		this.send(httpStatus.NOT_FOUND, {	message: 'Not Found' });
 	}
 }
 
@@ -95,10 +89,9 @@ function* remove() {
 	const report = yield Report.findByIdAndRemove(this.params.id);
 
 	if (report) {
-		this.body = { message: 'Deleted' };
+		this.send({ message: 'Deleted' });
 	} else {
-		this.status = httpStatus.NOT_FOUND;
-		this.body = { message: 'Not Found' };
+		this.send(httpStatus.NOT_FOUND, { message: 'Not Found' });
 	}
 }
 

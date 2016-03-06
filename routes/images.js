@@ -53,51 +53,61 @@ function deleteFilesEventually(ids) {
 	});
 
 }
-/**
- * REST API
- *
- * PUT /api/image - upload a new image
- */
-function* create(next) {
 
-	// this request *must* be a multipart form - if we don't
-	// reject this,  busboy will time out
-	if (!this.request.is(MULTIPART_HEADER)) {
-		return this.send(httpStatus.BAD_REQUEST, {
-				status: 'failed',
-				reason: reasonCodes.NOT_MULTIPART,
-				message: 'Not a multipart request'
-		});
+/**
+ * Parse multipart body, streaming files to
+ * the grid filing system
+ *
+ * @param  {Object} ctx The Koa context
+ * @return {Object}     Object of files and fields
+ */
+function* parseBody(ctx) {
+
+	const results = {
+		files: []
+	};
+
+	if (!ctx.request.is(MULTIPART_HEADER)) {
+		return results;
 	}
 
-	const userId = this.request.user._id;
+	const parts = busboy(ctx, { autoFields: true });
 
-	var parts = busboy(this, {
-		autoFields: true,
-	});
-
-	// jshint -W084
+	// jshint -W084, strict: true
 	var part;
-	var fileIds = [];
 	while (part = yield parts) {
 		var writeStream = gfs.createWriteStream({
 			mode: 'w',
 			content_type: part.mimeType,
 			metadata: {
-				user: userId
+				user: ctx.request.user._id
 			}
 		});
 		part.pipe(writeStream);
-		// record the (hopefully one) file ID
-		fileIds.push(writeStream.id);
+		results.files.push(writeStream.id);
 	}
 
+	results.field = parts.field;
+
+	return results;
+}
+
+/**
+ * REST API
+ *
+ * PUT /api/image - upload a new image
+ */
+function* create() {
+	// jshint maxstatements: 16, strict: true
+
+	const parts = yield parseBody(this);
+
 	// if a strange number of files found
-	if (fileIds.length !== 1) {
-		deleteFilesEventually(fileIds);
+	if (parts.files.length !== 1) {
+		deleteFilesEventually(parts.files);
 		return this.send(httpStatus.BAD_REQUEST, {
 			status: 'failed',
-			reason: fileIds.length === 0 ? reasonCodes.NO_IMAGE_FOUND : reasonCodes.TOO_MANY_FILES,
+			reason: parts.files.length === 0 ? reasonCodes.NO_IMAGE_FOUND : reasonCodes.TOO_MANY_FILES,
 			message: 'No image found'
 		});
 	}
@@ -109,7 +119,7 @@ function* create(next) {
 
 	// the value must include a report id string
 	if (metadata === undefined || typeof metadata.reportid !== 'string') {
-		deleteFilesEventually(fileIds);
+		deleteFilesEventually(parts.files);
 		return this.send(httpStatus.BAD_REQUEST, {
 			status: 'failed',
 			reason: reasonCodes.MISSING_REPORT_ID,
@@ -118,13 +128,13 @@ function* create(next) {
 	}
 
 	// retrieve the report
-	var report = yield Report.findOne({
+	const report = yield Report.findOne({
 		_id: metadata.reportid,
-		userid: userId
+		userid: this.request.user._id
 	});
 
 	if (!report) {
-		deleteFilesEventually(fileIds);
+		deleteFilesEventually(parts.files);
 		return this.send(httpStatus.BAD_REQUEST, {
 			status: 'failed',
 			reason: reasonCodes.REPORT_NOT_FOUND,
@@ -134,13 +144,13 @@ function* create(next) {
 
 	// update the report with the file ID and description
 	report.images.push({
-		id: fileIds[0],
+		id: parts.files[0],
 		description: metadata.description
 	});
 
 	// save the report
 	yield report.save()
-		.then(() => this.send({ status: 'ok', id: fileIds[0] }))
+		.then(() => this.send({ status: 'ok', id: parts.files[0] }))
 		.catch(err => this.throw(err));
 }
 

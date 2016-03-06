@@ -21,9 +21,10 @@ function* create() {
 		})
 		.catch(err => {
 			if (err && err.name === 'NotFound') {
-				this.status = httpStatus.NOT_FOUND;
-				this.body = { status: 'failed', message: 'Not found' };
-				return;
+				return this.send(httpStatus.NOT_FOUND, {
+					status: 'failed',
+					message: 'Not found'
+				});
 			}
 			this.throw(err);
 		});
@@ -55,9 +56,10 @@ function* remove() {
 		id = new ObjectId(this.params.id);
 	} catch (err) {
 		// this isn't a valid ID
-		this.status = httpStatus.BAD_REQUEST;
-		this.body = {	status: 'failed', message: 'Invalid ID format' };
-		return;
+		return this.send(httpStatus.BAD_REQUEST, {
+			status: 'failed',
+			message: 'Invalid ID format'
+		});
 	}
 
 	yield this.request.user.removeFollowing(id)
@@ -66,9 +68,10 @@ function* remove() {
 		})
 		.catch(err => {
 			if (err && (err.name === 'NotFollowing' || err.name === 'NotKnown')) {
-				this.status = httpStatus.NOT_FOUND;
-				this.body = { status: 'failed', message: 'Not found' };
-				return;
+				return this.send(httpStatus.NOT_FOUND, {
+					status: 'failed',
+					message: 'Not found'
+				});
 			}
 			this.throw(err);
 		});
