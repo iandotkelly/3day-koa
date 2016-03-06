@@ -21,7 +21,7 @@ const errorResponse = {
 function* create(next) {
 
 	const body = this.request.body;
-	const	user = this.request.user;
+	const	user = this.state.user;
 	var report;
 
 	if (!body || !body.date || !body.categories) {
@@ -47,7 +47,7 @@ function* create(next) {
  */
 function* retrieve() {
 
-	const reports = yield Report.find({ userid: this.request.user._id },
+	const reports = yield Report.find({ userid: this.state.user._id },
 		'-__v', {
 			skip: this.params.skip || 0,
 			limit: this.params.number || 1,
@@ -72,7 +72,7 @@ function* update() {
 	// find and update the report
 	const report = yield Report.findByIdAndUpdate(this.params.id, body);
 	// set the latest action on the user
-	yield this.request.user.setLatest();
+	yield this.state.user.setLatest();
 
 	if (report) {
 		this.send({ message: 'Updated' });

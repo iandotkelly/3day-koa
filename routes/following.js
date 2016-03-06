@@ -15,7 +15,7 @@ const User = require('../models/user');
  */
 function* create() {
 
-	yield this.request.user.addFollowing(this.params.username)
+	yield this.state.user.addFollowing(this.params.username)
 		.then(user => {
 			this.body = { status: 'success', message: 'Friend added', id: user._id };
 		})
@@ -35,7 +35,7 @@ function* create() {
  */
 function* retrieve() {
 
-	const user = this.request.user.toObject();
+	const user = this.state.user.toObject();
 
 	// add usernames
 	yield User.addUsername(user.following || [])
@@ -62,7 +62,7 @@ function* remove() {
 		});
 	}
 
-	yield this.request.user.removeFollowing(id)
+	yield this.state.user.removeFollowing(id)
 		.then(() => {
 			this.body = { status: 'success' };
 		})

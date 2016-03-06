@@ -83,6 +83,7 @@ app.use(routerAuth.allowedMethods());
 
 // turn on server
 var server = app.listen(port);
+console.log(`3DAY server running on port ${port}`);
 
 // export the app and the server - mostly
 // required for testing

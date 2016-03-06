@@ -86,7 +86,7 @@ function* create(next) {
  */
 function* retrieve(next) {
 
-	const reqUser = this.request.user;
+	const reqUser = this.state.user;
 
 	// if we have got to this point we already have our user
 	// but we will reformat slightly rather than refetch as a lean
@@ -107,7 +107,7 @@ function* retrieve(next) {
 function* update(next) {
 
 	const body = this.request.body;
-	const user = this.request.user;
+	const user = this.state.user;
 
 	// the update needs to have either an updated username
 	// or an updated password

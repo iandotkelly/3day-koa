@@ -15,7 +15,7 @@ const User = require('../models/user');
  */
 function* retrieve() {
 
-	const followers = this.request.user.toObject().followers || [];
+	const followers = this.state.user.toObject().followers || [];
 	const active = [];
 
 	// only copy active users
@@ -41,7 +41,7 @@ function* update() {
   // jshint maxstatements: 18, strict: true
 
   var id = this.params.id;
-	const user = this.request.user,
+	const user = this.state.user,
 		followers = user.followers,
 		approved = this.request.body.approved,
 		blocked = this.request.body.blocked;

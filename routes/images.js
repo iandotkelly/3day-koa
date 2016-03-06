@@ -80,7 +80,7 @@ function* parseBody(ctx) {
 			mode: 'w',
 			content_type: part.mimeType,
 			metadata: {
-				user: ctx.request.user._id
+				user: ctx.state.user._id
 			}
 		});
 		part.pipe(writeStream);
@@ -130,7 +130,7 @@ function* create() {
 	// retrieve the report
 	const report = yield Report.findOne({
 		_id: metadata.reportid,
-		userid: this.request.user._id
+		userid: this.state.user._id
 	});
 
 	if (!report) {
@@ -161,7 +161,7 @@ function* create() {
  */
 function* retrieve(req, res, next) {
 
-	var user = this.request.user;
+	const user = this.state.user;
 	var id;
 
 	// try to parse the ID, as we only accept mongo object IDs
@@ -176,7 +176,7 @@ function* retrieve(req, res, next) {
 	}
 
 	// find the file
-	var file = yield gfs.files.findOne({ _id: id });
+	const file = yield gfs.files.findOne({ _id: id });
 
 	// if no file - then 404
 	if (!file) {
@@ -187,7 +187,7 @@ function* retrieve(req, res, next) {
 	}
 
 	// if unauthorized
-	var authorized = yield user.isAuthorized(file.metadata.user);
+	const authorized = yield user.isAuthorized(file.metadata.user);
 	if (!authorized) {
 		return this.send(httpStatus.UNAUTHORIZED, {
 			status: 'failed',
@@ -207,7 +207,7 @@ function* retrieve(req, res, next) {
  */
 function* remove() {
 
-	const user = this.request.user;
+	const user = this.state.user;
 
 	const file = yield gfs.files.findOne({ _id: this.param.id	});
 

@@ -19,7 +19,7 @@ function* byTime() {
 	const timeFrom = new Date(this.params.timefrom);
 	const timeTo = new Date(this.params.timeto);
 	const req = this.request;
-	const user = req.user;
+	const user = this.state.user;
 
 	var shortList;
 
@@ -55,7 +55,7 @@ function* byPage() {
 	time = time === '0' ? new Date() : time;
 	const req = this.request;
 	const number = this.params.number || 100;
-	const user = this.request.user;
+	const user = this.state.user;
 
 	var shortList;
 
