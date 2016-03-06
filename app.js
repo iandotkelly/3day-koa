@@ -69,6 +69,10 @@ routerAuth.get('/api/reports/:number', routes.reports.retrieve);
 routerAuth.get('/api/reports', routes.reports.retrieve);
 routerAuth.delete('/api/reports/:id', routes.reports.remove);
 routerAuth.post('/api/reports/:id', routes.reports.update);
+// report timeline
+routerAuth.post('/api/timeline', routes.timeline.bypage);
+routerAuth.post('/api/timeline/:time/:number', routes.timeline.bypage);
+routerAuth.post('/api/timeline/from/:timefrom/to/:timeto', routes.timeline.bytime);
 // images
 routerAuth.get('/api/image/:id', routes.images.retrieve);
 routerAuth.post('/api/image', routes.images.create);
