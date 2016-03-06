@@ -29,22 +29,18 @@ app.use(compress());
 // custom context utility functions
 app.use(utilities);
 
-// Public routes
-routerPub.post('/api/users', function *(next) {
-	// if there is an authorization header then
-	// this is an update request, so yield to downstream
-	if (this.request.headers.authorization) {
-		yield next;
-	} else {
-		// if not this is a request to create a user
-		yield routes.users.create;
-	}
-});
-
+/**
+ * Public Routes
+ */
+// users
+routerPub.post('/api/users', routes.users.createOrUpdate);
+// configure public routes
 app.use(routerPub.routes());
 app.use(routerPub.allowedMethods());
 
-// authentication
+/**
+ * Authentication middleware
+ */
 app.use(require('./lib/customheader-middleware'));
 app.use(require('./lib/authenticate'));
 
@@ -77,13 +73,14 @@ routerAuth.post('/api/timeline/from/:timefrom/to/:timeto', routes.timeline.bytim
 routerAuth.get('/api/image/:id', routes.images.retrieve);
 routerAuth.post('/api/image', routes.images.create);
 routerAuth.delete('/api/image/:id', routes.images.remove);
-
+// configure routes
 app.use(routerAuth.routes());
 app.use(routerAuth.allowedMethods());
 
 // turn on server
-var server = app.listen(port);
-console.log(`3DAY server running on port ${port}`);
+var server = app.listen(port, () => {
+	console.log(`3DAY server running on port ${port}`);
+});
 
 // export the app and the server - mostly
 // required for testing

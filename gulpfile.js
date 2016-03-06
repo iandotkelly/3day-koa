@@ -8,8 +8,7 @@ var mongoose = require('mongoose');
 
 var paths = {
   javascript: ['**/*.js', '!node_modules/**/*'],
-  tests: ['test/**/*.js'],
-  auth: ['test/integration/authentication.js', 'test/integration/followers.js']
+  tests: ['test/**/*.js']
 };
 
 var gulp = require('gulp');

@@ -8,9 +8,9 @@
 'use strict';
 
 // db connection
-var db = require('../lib/db-connection');
+const db = require('../lib/db-connection');
 
-var reportSchema = db.Schema({
+const reportSchema = db.Schema({
 
 	userid: {
 		type: db.Schema.ObjectId,

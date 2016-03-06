@@ -123,7 +123,7 @@ userSchema.methods.validatePassword = function (password) {
 userSchema.methods.setLatest = function () {
 
 	// set the object's latest to now
-	var now = Date.now();
+	const now = Date.now();
 	this.latest = now;
 
 	return new Promise((resolve, reject) => {

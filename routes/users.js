@@ -152,7 +152,25 @@ function* update(next) {
 		});
 }
 
+/**
+ * If unauthenticated allow a create, otherwise
+ * yield to the downstream middleware
+ *
+ * @param  {Function} next Downstream
+ */
+function* createOrUpdate(next) {
+ // if there is an authorization header then
+ // this is an update request, so yield to downstream
+ if (this.request.headers.authorization) {
+	 yield next;
+ } else {
+	 // if not this is a request to create a user
+	 yield create;
+ }
+}
+
 module.exports = {
+	createOrUpdate: createOrUpdate,
 	create: create,
 	retrieve: retrieve,
 	update: update
