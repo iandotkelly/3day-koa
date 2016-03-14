@@ -1,3 +1,4 @@
 node_modules/
 coverage.html
 bower_components
+public/jspm_packages/
