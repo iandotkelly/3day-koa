@@ -49,8 +49,8 @@ function* retrieve() {
 
 	const reports = yield Report.find({ userid: this.state.user._id },
 		'-__v', {
-			skip: this.params.skip || 0,
-			limit: this.params.number || 1,
+			skip: Number(this.params.skip || 0),
+			limit: Number(this.params.number || 1),
 			sort: {
 				date: -1 // sort by report date DESC
 			}

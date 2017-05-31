@@ -54,7 +54,7 @@ function* byPage() {
 	var time = this.params.time;
 	time = time === '0' ? new Date() : time;
 	const req = this.request;
-	const number = this.params.number || 100;
+	const number = Number(this.params.number || 100);
 	const user = this.state.user;
 
 	var shortList;
